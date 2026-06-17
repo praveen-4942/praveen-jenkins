@@ -1,56 +1,66 @@
 pipeline {
-agent {
-label 'kaniko'
-}
-
-
-environment {
-    AWS_ACCOUNT_ID = '130759691668'
-    AWS_REGION = 'us-east-1'
-    IMAGE_REPO = 'praveenkumarg/app'
-    IMAGE_TAG = "${BUILD_NUMBER}"
-}
-
-stages {
-
-    stage('Checkout Code') {
-        steps {
-            checkout scm
-        }
+    agent {
+        label 'jenkins-jenkins-agent'
     }
 
-    stage('Code Validation') {
-    steps {
-        container('python') {
-            sh 'python3 -m py_compile app/app.py'
-        }
+    environment {
+        AWS_REGION = 'us-east-1'
+        AWS_ACCOUNT_ID = '130759691668'
+        IMAGE_REPO = 'praveenkumarg/app'
+        IMAGE_TAG = "${BUILD_NUMBER}"
     }
-}
 
-    stage('Build and Push Image') {
-        steps {
-            container('kaniko') {
+    stages {
+
+        stage('Checkout Code') {
+            steps {
+                checkout scm
+            }
+        }
+
+        stage('Code Validation') {
+            steps {
+                sh 'python3 -m py_compile app/app.py'
+            }
+        }
+
+        stage('Docker Build') {
+            steps {
                 sh '''
-                /kaniko/executor \
-                --context=$WORKSPACE \
-                --dockerfile=$WORKSPACE/Dockerfile \
-                --destination=$AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$IMAGE_REPO:$IMAGE_TAG \
-                --destination=$AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$IMAGE_REPO:latest
+                docker build \
+                -t $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$IMAGE_REPO:$IMAGE_TAG .
+
+                docker tag \
+                $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$IMAGE_REPO:$IMAGE_TAG \
+                $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$IMAGE_REPO:latest
+                '''
+            }
+        }
+
+        stage('Push To ECR') {
+            steps {
+                sh '''
+                aws ecr get-login-password --region $AWS_REGION | \
+                docker login --username AWS --password-stdin \
+                $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com
+
+                docker push \
+                $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$IMAGE_REPO:$IMAGE_TAG
+
+                docker push \
+                $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$IMAGE_REPO:latest
                 '''
             }
         }
     }
-}
 
-post {
-    success {
-        echo 'Image Built and Pushed Successfully'
+    post {
+        success {
+            echo 'Image Built and Pushed Successfully'
+        }
+
+        failure {
+            echo 'Pipeline Failed'
+        }
     }
-
-    failure {
-        echo 'Pipeline Failed'
-    }
-}
-
-
 }
