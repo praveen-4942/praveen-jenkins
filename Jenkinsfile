@@ -3,7 +3,7 @@ agent {
 label 'kaniko'
 }
 
-```
+
 environment {
     AWS_ACCOUNT_ID = '130759691668'
     AWS_REGION = 'us-east-1'
@@ -49,6 +49,6 @@ post {
         echo 'Pipeline Failed'
     }
 }
-```
+
 
 }
