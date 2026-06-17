@@ -1,6 +1,6 @@
 pipeline {
     agent {
-        label 'devops-agent'
+        label 'jenkins-jenkins-agent'
     }
 
     environment {
