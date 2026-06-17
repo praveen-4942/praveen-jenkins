@@ -21,7 +21,7 @@ pipeline {
         stage('Code Validation') {
             steps {
                 sh '''
-                python -m py_compile app/app.py
+                python3 -m py_compile app/app.py
                 '''
             }
         }
