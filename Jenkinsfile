@@ -20,10 +20,12 @@ stages {
     }
 
     stage('Code Validation') {
-        steps {
+    steps {
+        container('python') {
             sh 'python3 -m py_compile app/app.py'
         }
     }
+}
 
     stage('Build and Push Image') {
         steps {
