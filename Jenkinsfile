@@ -1,3 +1,4 @@
+
 pipeline {
 
     agent {
@@ -24,20 +25,18 @@ pipeline {
         stage('Set Environment') {
             steps {
                 script {
-
                     if (params.ENVIRONMENT == 'dev') {
                         env.REPLICAS = "1"
-                    }
-
-                    if (params.ENVIRONMENT == 'qa') {
+                    } else if (params.ENVIRONMENT == 'qa') {
                         env.REPLICAS = "2"
-                    }
-
-                    if (params.ENVIRONMENT == 'uat') {
+                    } else {
                         env.REPLICAS = "3"
                     }
 
                     env.NAMESPACE = params.ENVIRONMENT
+
+                    echo "Environment : ${env.NAMESPACE}"
+                    echo "Replicas    : ${env.REPLICAS}"
                 }
             }
         }
@@ -87,16 +86,11 @@ pipeline {
             steps {
                 sh '''
                 sed "s|IMAGE_NAME|$AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$IMAGE_REPO:$IMAGE_TAG|g" deployment.yaml \
-                | sed "s|REPLICA_COUNT|$REPLICAS|g" > deployment-temp.yaml
-                
+                | sed "s|REPLICA_COUNT|$REPLICAS|g" \
+                > deployment-temp.yaml
+
+                echo "Generated Deployment File:"
                 cat deployment-temp.yaml
-                '''
-                sh '''
-                cp deployment.yaml deployment-temp.yaml
-
-                sed -i "s|REPLICA_COUNT|$REPLICAS|g" deployment-temp.yaml
-
-                sed -i "s|IMAGE_NAME|$AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$IMAGE_REPO:$IMAGE_TAG|g" deployment-temp.yaml
                 '''
             }
         }
@@ -105,8 +99,22 @@ pipeline {
             steps {
                 sh '''
                 kubectl apply -f deployment-temp.yaml -n $NAMESPACE
-                kubectl delete svc demo-app-service -n $NAMESPACE --ignore-not-found=true
+
+                kubectl delete svc demo-app-service \
+                -n $NAMESPACE \
+                --ignore-not-found=true
+
                 kubectl apply -f service.yaml -n $NAMESPACE
+                '''
+            }
+        }
+
+        stage('Verify Deployment') {
+            steps {
+                sh '''
+                kubectl get deploy -n $NAMESPACE
+                kubectl get svc -n $NAMESPACE
+                kubectl get pods -n $NAMESPACE
                 '''
             }
         }
@@ -120,7 +128,7 @@ pipeline {
         }
 
         failure {
-            echo 'Pipeline Failed'
+            echo "Pipeline Failed"
         }
 
     }
