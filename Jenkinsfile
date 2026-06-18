@@ -99,12 +99,6 @@ pipeline {
             steps {
                 sh '''
                 kubectl apply -f deployment-temp.yaml -n $NAMESPACE
-
-                kubectl delete svc demo-app-service \
-                -n $NAMESPACE \
-                --ignore-not-found=true
-
-                kubectl apply -f service.yaml -n $NAMESPACE
                 '''
             }
         }
