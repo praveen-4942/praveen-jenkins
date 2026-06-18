@@ -86,6 +86,12 @@ pipeline {
         stage('Prepare Deployment') {
             steps {
                 sh '''
+                sed "s|IMAGE_NAME|$AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$IMAGE_REPO:$IMAGE_TAG|g" deployment.yaml \
+                | sed "s|REPLICA_COUNT|$REPLICAS|g" > deployment-temp.yaml
+                
+                cat deployment-temp.yaml
+                '''
+                sh '''
                 cp deployment.yaml deployment-temp.yaml
 
                 sed -i "s|REPLICA_COUNT|$REPLICAS|g" deployment-temp.yaml
