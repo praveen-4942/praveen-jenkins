@@ -1,13 +1,4 @@
-def sendGchatNotification(message) {
-    withCredentials([string(credentialsId: 'gchat-webhook-url', variable: 'WEBHOOK_URL')]) {
-        sh """
-        curl -X POST \
-        -H 'Content-Type: application/json' \
-        -d '{"text":"${message}"}' \
-        "$WEBHOOK_URL"
-        """
-    }
-}
+@Library('shared-lib') _
 
 pipeline {
 
@@ -78,48 +69,19 @@ Timestamp: ${new Date()}
 
         stage('Docker Build') {
             steps {
-                sh '''
-                docker build \
-                -t $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$IMAGE_REPO:$IMAGE_TAG .
-
-                docker tag \
-                $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$IMAGE_REPO:$IMAGE_TAG \
-                $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$IMAGE_REPO:latest
-                '''
+                dockerBuild()
             }
         }
 
         stage('Push To ECR') {
             steps {
-                sh '''
-                aws ecr get-login-password --region $AWS_REGION | \
-                docker login --username AWS --password-stdin \
-                $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com
-
-                docker push \
-                $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$IMAGE_REPO:$IMAGE_TAG
-
-                docker push \
-                $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$IMAGE_REPO:latest
-                '''
-            }
-        }
-
-        stage('Prepare Deployment') {
-            steps {
-                sh '''
-                sed "s|IMAGE_NAME|$AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$IMAGE_REPO:$IMAGE_TAG|g" deployment.yaml \
-                | sed "s|REPLICA_COUNT|$REPLICAS|g" \
-                > deployment-temp.yaml
-                '''
+                ecrPush()
             }
         }
 
         stage('Deploy to EKS') {
             steps {
-                sh '''
-                kubectl apply -f deployment-temp.yaml -n $NAMESPACE
-                '''
+                k8sDeploy()
             }
         }
 
