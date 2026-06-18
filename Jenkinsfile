@@ -1,6 +1,15 @@
 pipeline {
+
     agent {
         label 'jenkins-jenkins-agent'
+    }
+
+    parameters {
+        choice(
+            name: 'ENVIRONMENT',
+            choices: ['dev', 'qa', 'uat'],
+            description: 'Select deployment environment'
+        )
     }
 
     environment {
@@ -11,6 +20,27 @@ pipeline {
     }
 
     stages {
+
+        stage('Set Environment') {
+            steps {
+                script {
+
+                    if (params.ENVIRONMENT == 'dev') {
+                        env.REPLICAS = "1"
+                    }
+
+                    if (params.ENVIRONMENT == 'qa') {
+                        env.REPLICAS = "2"
+                    }
+
+                    if (params.ENVIRONMENT == 'uat') {
+                        env.REPLICAS = "3"
+                    }
+
+                    env.NAMESPACE = params.ENVIRONMENT
+                }
+            }
+        }
 
         stage('Checkout Code') {
             steps {
@@ -52,15 +82,39 @@ pipeline {
                 '''
             }
         }
+
+        stage('Prepare Deployment') {
+            steps {
+                sh '''
+                cp deployment.yaml deployment-temp.yaml
+
+                sed -i "s|REPLICA_COUNT|$REPLICAS|g" deployment-temp.yaml
+
+                sed -i "s|IMAGE_NAME|$AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$IMAGE_REPO:$IMAGE_TAG|g" deployment-temp.yaml
+                '''
+            }
+        }
+
+        stage('Deploy to EKS') {
+            steps {
+                sh '''
+                kubectl apply -f deployment-temp.yaml -n $NAMESPACE
+                kubectl apply -f service.yaml -n $NAMESPACE
+                '''
+            }
+        }
+
     }
 
     post {
+
         success {
-            echo 'Image Built and Pushed Successfully'
+            echo "Successfully deployed to ${params.ENVIRONMENT}"
         }
 
         failure {
             echo 'Pipeline Failed'
         }
+
     }
 }
