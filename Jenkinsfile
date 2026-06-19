@@ -24,20 +24,30 @@ pipeline {
     stages {
 
         stage('Set Environment') {
-            steps {
-                script {
-                    if (params.ENVIRONMENT == 'dev') {
-                        env.REPLICAS = "1"
-                    } else if (params.ENVIRONMENT == 'qa') {
-                        env.REPLICAS = "2"
-                    } else {
-                        env.REPLICAS = "3"
-                    }
+    steps {
+        script {
 
-                    env.NAMESPACE = params.ENVIRONMENT
-                }
+            if (env.BRANCH_NAME == "dev") {
+                env.NAMESPACE = "dev"
+                env.REPLICAS = "1"
             }
+
+            else if (env.BRANCH_NAME == "release") {
+                env.NAMESPACE = "qa"
+                env.REPLICAS = "2"
+            }
+
+            else {
+                env.NAMESPACE = "uat"
+                env.REPLICAS = "3"
+            }
+
+            echo "Branch : ${env.BRANCH_NAME}"
+            echo "Namespace : ${env.NAMESPACE}"
+            echo "Replicas : ${env.REPLICAS}"
         }
+    }
+}
 
         stage('Build Started Notification') {
             steps {
