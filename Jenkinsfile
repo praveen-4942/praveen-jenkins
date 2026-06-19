@@ -3,7 +3,7 @@
 pipeline {
 
     agent {
-        label 'jenkins-jenkins-agent'
+        label 'devops-agent-v2'
     }
 
     environment {
