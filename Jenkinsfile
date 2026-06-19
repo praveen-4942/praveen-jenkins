@@ -48,6 +48,28 @@ pipeline {
         }
     }
 }
+            steps {
+                script {
+
+                    if (env.BRANCH_NAME == "dev") {
+                        env.NAMESPACE = "dev"
+                        env.REPLICAS = "1"
+                    }
+                    else if (env.BRANCH_NAME == "release") {
+                        env.NAMESPACE = "qa"
+                        env.REPLICAS = "2"
+                    }
+                    else {
+                        env.NAMESPACE = "uat"
+                        env.REPLICAS = "3"
+                    }
+
+                    echo "Branch : ${env.BRANCH_NAME}"
+                    echo "Namespace : ${env.NAMESPACE}"
+                    echo "Replicas : ${env.REPLICAS}"
+                }
+            }
+        }
 
         stage('Build Started Notification') {
             steps {
@@ -57,8 +79,13 @@ pipeline {
 
 Job: ${JOB_NAME}
 Build: #${BUILD_NUMBER}
+<<<<<<< HEAD
 Branch: main
 Environment: ${params.ENVIRONMENT}
+=======
+Branch: ${env.BRANCH_NAME}
+Environment: ${env.NAMESPACE}
+>>>>>>> c210a4d (Bonus1 multibranch support)
 Timestamp: ${new Date()}
 """)
                 }
@@ -121,15 +148,22 @@ Timestamp: ${new Date()}
 
 Job: ${JOB_NAME}
 Build: #${BUILD_NUMBER}
+<<<<<<< HEAD
 Branch: main
 Commit ID: ${commitId}
 Environment: ${params.ENVIRONMENT}
+=======
+Branch: ${env.BRANCH_NAME}
+Commit ID: ${commitId}
+Environment: ${env.NAMESPACE}
+>>>>>>> c210a4d (Bonus1 multibranch support)
 Build URL: ${BUILD_URL}
 Timestamp: ${new Date()}
 """)
             }
 
             echo "Successfully deployed to ${params.ENVIRONMENT}"
+            echo "Successfully deployed to ${env.NAMESPACE}"
         }
 
         failure {
@@ -140,14 +174,20 @@ Timestamp: ${new Date()}
 
 Job: ${JOB_NAME}
 Build: #${BUILD_NUMBER}
+<<<<<<< HEAD
 Branch: main
 Environment: ${params.ENVIRONMENT}
+=======
+Branch: ${env.BRANCH_NAME}
+Environment: ${env.NAMESPACE}
+>>>>>>> c210a4d (Bonus1 multibranch support)
 Build URL: ${BUILD_URL}
 Timestamp: ${new Date()}
 """)
             }
 
             echo "Pipeline Failed"
+            echo "Pipeline Failed for ${env.NAMESPACE}"
         }
     }
 }
