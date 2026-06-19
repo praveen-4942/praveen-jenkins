@@ -80,10 +80,28 @@ Timestamp: ${new Date()}
         }
 
         stage('Deploy to EKS') {
-            steps {
-                k8sDeploy()
-            }
-        }
+	    steps {
+		script {
+		    try {
+		        k8sDeploy()
+
+		        sh '''
+		        kubectl rollout status deployment/demo-app -n $NAMESPACE --timeout=120s
+		        '''
+		    }
+		    catch(Exception e) {
+
+		        echo "Deployment Failed"
+
+		        sh '''
+		        kubectl rollout undo deployment/demo-app -n $NAMESPACE
+		        '''
+
+		        error("Rollback Completed")
+		    }
+		}
+	    }
+	}
 
         stage('Verify Deployment') {
             steps {
