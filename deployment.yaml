@@ -16,7 +16,7 @@ spec:
     spec:
       containers:
       - name: demo-app
-        image: IMAGE_NAME
+        image: nginx:notexist
 
         ports:
         - containerPort: 5000
